@@ -11,7 +11,6 @@ from datasets import PascalVOCDataset
 from tqdm import tqdm
 from pprint import PrettyPrinter
 
-# Good formatting when printing the APs for each class and mAP
 pp = PrettyPrinter()
 
 # Parameters
@@ -49,12 +48,8 @@ def evaluate(test_loader, model):
     model.eval()
 
     # Lists to store detected and true boxes, labels, scores
-    det_boxes = list()
-    det_labels = list()
-    det_scores = list()
-    true_boxes = list()
-    true_labels = list()
-    true_difficulties = list()  # it is necessary to know which objects are 'difficult', see 'calculate_mAP' in utils.py
+    det_boxes,  det_labels, det_scores, true_boxes, true_labels, true_difficulties= [], [], [], [], [], []
+    # it is necessary to know which objects are 'difficult', see 'calculate_mAP' in utils.py
 
     with torch.no_grad():
         # Batches
