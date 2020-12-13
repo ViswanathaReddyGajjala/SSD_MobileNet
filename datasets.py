@@ -67,10 +67,7 @@ class PascalVOCDataset(Dataset):
         :return: a tensor of images, lists of varying-size tensors of bounding boxes, labels, and difficulties
         """
 
-        images = list()
-        boxes = list()
-        labels = list()
-        difficulties = list()
+        images, boxes, labels, difficulties = [], [], [], []
 
         for b in batch:
             images.append(b[0])
