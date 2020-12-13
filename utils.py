@@ -26,9 +26,9 @@ def parse_annotation(annotation_path):
     tree = ET.parse(annotation_path)
     root = tree.getroot()
 
-    boxes = list()
-    labels = list()
-    difficulties = list()
+    boxes = []
+    labels = []
+    difficulties = []
     for object in root.iter('object'):
 
         difficult = int(object.find('difficult').text == '1')
@@ -61,8 +61,8 @@ def create_data_lists(voc07_path, voc12_path, output_folder):
     voc07_path = os.path.abspath(voc07_path)
     voc12_path = os.path.abspath(voc12_path)
 
-    train_images = list()
-    train_objects = list()
+    train_images = []
+    train_objects = []
     n_objects = 0
 
     if not os.path.exists(output_folder):
@@ -97,8 +97,8 @@ def create_data_lists(voc07_path, voc12_path, output_folder):
         len(train_images), n_objects, os.path.abspath(output_folder)))
 
     # Validation data
-    test_images = list()
-    test_objects = list()
+    test_images = []
+    test_objects = []
     n_objects = 0
 
     # Find IDs of images in validation data
@@ -165,7 +165,7 @@ def calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, tr
     n_classes = len(label_map)
 
     # Store all (true) objects in a single continuous tensor while keeping track of the image it is from
-    true_images = list()
+    true_images = []
     for i in range(len(true_labels)):
         true_images.extend([i] * true_labels[i].size(0))
     true_images = torch.LongTensor(true_images).to(
@@ -177,7 +177,7 @@ def calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, tr
     assert true_images.size(0) == true_boxes.size(0) == true_labels.size(0)
 
     # Store all detections in a single continuous tensor while keeping track of the image it is from
-    det_images = list()
+    det_images = []
     for i in range(len(det_labels)):
         det_images.extend([i] * det_labels[i].size(0))
     det_images = torch.LongTensor(det_images).to(device)  # (n_detections)
@@ -744,9 +744,9 @@ def detect_objects(model, priors_cxcy, predicted_locs, predicted_scores, min_sco
         predicted_scores = F.softmax(predicted_scores, dim=2)  # (N, 8732, n_classes)
 
         # Lists to store final predicted boxes, labels, and scores for all images
-        all_images_boxes = list()
-        all_images_labels = list()
-        all_images_scores = list()
+        all_images_boxes = []
+        all_images_labels = []
+        all_images_scores = []
 
         assert n_priors == predicted_locs.size(1) == predicted_scores.size(1)
 
@@ -756,9 +756,9 @@ def detect_objects(model, priors_cxcy, predicted_locs, predicted_scores, min_sco
                 gcxgcy_to_cxcy(predicted_locs[i], priors_cxcy))  # (8732, 4), these are fractional pt. coordinates
 
             # Lists to store boxes and scores for this image
-            image_boxes = list()
-            image_labels = list()
-            image_scores = list()
+            image_boxes = []
+            image_labels = []
+            image_scores = []
 
             max_scores, best_label = predicted_scores[i].max(dim=1)  # (8732)
 
