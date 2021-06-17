@@ -14,6 +14,7 @@ from MobileNetV2 import MobileNetV2, MobileNetV2_pretrained
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 class MobileNetV1(nn.Module):
     def __init__(self, num_classes=1000):
         super(MobileNetV1, self).__init__()
@@ -22,7 +23,7 @@ class MobileNetV1(nn.Module):
             return nn.Sequential(
                 nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
                 nn.BatchNorm2d(oup),
-                nn.ReLU(inplace=True)
+                nn.ReLU(inplace=True),
             )
 
         def conv_dw(inp, oup, stride):
@@ -30,7 +31,6 @@ class MobileNetV1(nn.Module):
                 nn.Conv2d(inp, inp, 3, stride, 1, groups=inp, bias=False),
                 nn.BatchNorm2d(inp),
                 nn.ReLU(inplace=True),
-
                 nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
                 nn.BatchNorm2d(oup),
                 nn.ReLU(inplace=True),
@@ -61,6 +61,7 @@ class MobileNetV1(nn.Module):
         x = self.fc(x)
         return x
 
+
 class PredictionConvolutions(nn.Module):
     """
     Convolutions to predict class scores and bounding boxes using lower and higher-level feature maps.
@@ -79,51 +80,101 @@ class PredictionConvolutions(nn.Module):
         self.n_classes = n_classes
 
         # Number of prior-boxes we are considering per position in each feature map
-        n_boxes = {'conv4_3': 4,
-                   'conv7': 6,
-                   'conv8_2': 6,
-                   'conv9_2': 6,
-                   'conv10_2': 4,
-                   'conv11_2': 4}
+        n_boxes = {
+            "conv4_3": 4,
+            "conv7": 6,
+            "conv8_2": 6,
+            "conv9_2": 6,
+            "conv10_2": 4,
+            "conv11_2": 4,
+        }
         # 4 prior-boxes implies we use 4 different aspect ratios, etc.
 
         # Localization prediction convolutions (predict offsets w.r.t prior-boxes)
-        if backbone_net == 'MobileNetV2':
-          self.loc_conv4_3 = nn.Conv2d(96, n_boxes['conv4_3'] * 4, kernel_size=3, padding=1)
-          self.loc_conv7 = nn.Conv2d(1280, n_boxes['conv7'] * 4, kernel_size=3, padding=1)
-          self.loc_conv8_2 = nn.Conv2d(512, n_boxes['conv8_2'] * 4, kernel_size=3, padding=1)
-          self.loc_conv9_2 = nn.Conv2d(256, n_boxes['conv9_2'] * 4, kernel_size=3, padding=1)
-          self.loc_conv10_2 = nn.Conv2d(256, n_boxes['conv10_2'] * 4, kernel_size=3, padding=1)
-          self.loc_conv11_2 = nn.Conv2d(256, n_boxes['conv11_2'] * 4, kernel_size=3, padding=1)
+        if backbone_net == "MobileNetV2":
+            self.loc_conv4_3 = nn.Conv2d(
+                96, n_boxes["conv4_3"] * 4, kernel_size=3, padding=1
+            )
+            self.loc_conv7 = nn.Conv2d(
+                1280, n_boxes["conv7"] * 4, kernel_size=3, padding=1
+            )
+            self.loc_conv8_2 = nn.Conv2d(
+                512, n_boxes["conv8_2"] * 4, kernel_size=3, padding=1
+            )
+            self.loc_conv9_2 = nn.Conv2d(
+                256, n_boxes["conv9_2"] * 4, kernel_size=3, padding=1
+            )
+            self.loc_conv10_2 = nn.Conv2d(
+                256, n_boxes["conv10_2"] * 4, kernel_size=3, padding=1
+            )
+            self.loc_conv11_2 = nn.Conv2d(
+                256, n_boxes["conv11_2"] * 4, kernel_size=3, padding=1
+            )
 
-          # Class prediction convolutions (predict classes in localization boxes)
-          self.cl_conv4_3 = nn.Conv2d(96, n_boxes['conv4_3'] * n_classes, kernel_size=3, padding=1)
-          self.cl_conv7 = nn.Conv2d(1280, n_boxes['conv7'] * n_classes, kernel_size=3, padding=1)
-          self.cl_conv8_2 = nn.Conv2d(512, n_boxes['conv8_2'] * n_classes, kernel_size=3, padding=1)
-          self.cl_conv9_2 = nn.Conv2d(256, n_boxes['conv9_2'] * n_classes, kernel_size=3, padding=1)
-          self.cl_conv10_2 = nn.Conv2d(256, n_boxes['conv10_2'] * n_classes, kernel_size=3, padding=1)
-          self.cl_conv11_2 = nn.Conv2d(256, n_boxes['conv11_2'] * n_classes, kernel_size=3, padding=1)
+            # Class prediction convolutions (predict classes in localization boxes)
+            self.cl_conv4_3 = nn.Conv2d(
+                96, n_boxes["conv4_3"] * n_classes, kernel_size=3, padding=1
+            )
+            self.cl_conv7 = nn.Conv2d(
+                1280, n_boxes["conv7"] * n_classes, kernel_size=3, padding=1
+            )
+            self.cl_conv8_2 = nn.Conv2d(
+                512, n_boxes["conv8_2"] * n_classes, kernel_size=3, padding=1
+            )
+            self.cl_conv9_2 = nn.Conv2d(
+                256, n_boxes["conv9_2"] * n_classes, kernel_size=3, padding=1
+            )
+            self.cl_conv10_2 = nn.Conv2d(
+                256, n_boxes["conv10_2"] * n_classes, kernel_size=3, padding=1
+            )
+            self.cl_conv11_2 = nn.Conv2d(
+                256, n_boxes["conv11_2"] * n_classes, kernel_size=3, padding=1
+            )
 
-          # Initialize convolutions' parameters
-          self.init_conv2d()
-        elif backbone_net == 'MobileNetV1':
-          self.loc_conv4_3 = nn.Conv2d(512, n_boxes['conv4_3'] * 4, kernel_size=3, padding=1)
-          self.loc_conv7 = nn.Conv2d(1024, n_boxes['conv7'] * 4, kernel_size=3, padding=1)
-          self.loc_conv8_2 = nn.Conv2d(512, n_boxes['conv8_2'] * 4, kernel_size=3, padding=1)
-          self.loc_conv9_2 = nn.Conv2d(256, n_boxes['conv9_2'] * 4, kernel_size=3, padding=1)
-          self.loc_conv10_2 = nn.Conv2d(256, n_boxes['conv10_2'] * 4, kernel_size=3, padding=1)
-          self.loc_conv11_2 = nn.Conv2d(256, n_boxes['conv11_2'] * 4, kernel_size=3, padding=1)
+            # Initialize convolutions' parameters
+            self.init_conv2d()
+        elif backbone_net == "MobileNetV1":
+            self.loc_conv4_3 = nn.Conv2d(
+                512, n_boxes["conv4_3"] * 4, kernel_size=3, padding=1
+            )
+            self.loc_conv7 = nn.Conv2d(
+                1024, n_boxes["conv7"] * 4, kernel_size=3, padding=1
+            )
+            self.loc_conv8_2 = nn.Conv2d(
+                512, n_boxes["conv8_2"] * 4, kernel_size=3, padding=1
+            )
+            self.loc_conv9_2 = nn.Conv2d(
+                256, n_boxes["conv9_2"] * 4, kernel_size=3, padding=1
+            )
+            self.loc_conv10_2 = nn.Conv2d(
+                256, n_boxes["conv10_2"] * 4, kernel_size=3, padding=1
+            )
+            self.loc_conv11_2 = nn.Conv2d(
+                256, n_boxes["conv11_2"] * 4, kernel_size=3, padding=1
+            )
 
-          # Class prediction convolutions (predict classes in localization boxes)
-          self.cl_conv4_3 = nn.Conv2d(512, n_boxes['conv4_3'] * n_classes, kernel_size=3, padding=1)
-          self.cl_conv7 = nn.Conv2d(1024, n_boxes['conv7'] * n_classes, kernel_size=3, padding=1)
-          self.cl_conv8_2 = nn.Conv2d(512, n_boxes['conv8_2'] * n_classes, kernel_size=3, padding=1)
-          self.cl_conv9_2 = nn.Conv2d(256, n_boxes['conv9_2'] * n_classes, kernel_size=3, padding=1)
-          self.cl_conv10_2 = nn.Conv2d(256, n_boxes['conv10_2'] * n_classes, kernel_size=3, padding=1)
-          self.cl_conv11_2 = nn.Conv2d(256, n_boxes['conv11_2'] * n_classes, kernel_size=3, padding=1)
+            # Class prediction convolutions (predict classes in localization boxes)
+            self.cl_conv4_3 = nn.Conv2d(
+                512, n_boxes["conv4_3"] * n_classes, kernel_size=3, padding=1
+            )
+            self.cl_conv7 = nn.Conv2d(
+                1024, n_boxes["conv7"] * n_classes, kernel_size=3, padding=1
+            )
+            self.cl_conv8_2 = nn.Conv2d(
+                512, n_boxes["conv8_2"] * n_classes, kernel_size=3, padding=1
+            )
+            self.cl_conv9_2 = nn.Conv2d(
+                256, n_boxes["conv9_2"] * n_classes, kernel_size=3, padding=1
+            )
+            self.cl_conv10_2 = nn.Conv2d(
+                256, n_boxes["conv10_2"] * n_classes, kernel_size=3, padding=1
+            )
+            self.cl_conv11_2 = nn.Conv2d(
+                256, n_boxes["conv11_2"] * n_classes, kernel_size=3, padding=1
+            )
 
-          # Initialize convolutions' parameters
-          self.init_conv2d()
+            # Initialize convolutions' parameters
+            self.init_conv2d()
 
     def init_conv2d(self):
         """
@@ -132,19 +183,32 @@ class PredictionConvolutions(nn.Module):
         for c in self.children():
             if isinstance(c, nn.Conv2d):
                 nn.init.xavier_uniform_(c.weight)
-                nn.init.constant_(c.bias, 0.)
+                nn.init.constant_(c.bias, 0.0)
 
-    def forward(self, conv4_3_feats, conv7_feats, conv8_2_feats, conv9_2_feats, conv10_2_feats, conv11_2_feats):
+    def forward(
+        self,
+        conv4_3_feats,
+        conv7_feats,
+        conv8_2_feats,
+        conv9_2_feats,
+        conv10_2_feats,
+        conv11_2_feats,
+    ):
         batch_size = conv4_3_feats.size(0)
-        
+
         l_conv4_3 = self.loc_conv4_3(conv4_3_feats)  # (N, 16, 38, 38)
-        l_conv4_3 = l_conv4_3.permute(0, 2, 3,
-                                      1).contiguous()  # (N, 38, 38, 16), to match prior-box order (after .view())
-        l_conv4_3 = l_conv4_3.view(batch_size, -1, 4)  # (N, 5776, 4), there are a total 5776 boxes on this feature map
+        l_conv4_3 = l_conv4_3.permute(
+            0, 2, 3, 1
+        ).contiguous()  # (N, 38, 38, 16), to match prior-box order (after .view())
+        l_conv4_3 = l_conv4_3.view(
+            batch_size, -1, 4
+        )  # (N, 5776, 4), there are a total 5776 boxes on this feature map
 
         l_conv7 = self.loc_conv7(conv7_feats)  # (N, 24, 19, 19)
         l_conv7 = l_conv7.permute(0, 2, 3, 1).contiguous()  # (N, 19, 19, 24)
-        l_conv7 = l_conv7.view(batch_size, -1, 4)  # (N, 2166, 4), there are a total 2116 boxes on this feature map
+        l_conv7 = l_conv7.view(
+            batch_size, -1, 4
+        )  # (N, 2166, 4), there are a total 2116 boxes on this feature map
 
         l_conv8_2 = self.loc_conv8_2(conv8_2_feats)  # (N, 24, 10, 10)
         l_conv8_2 = l_conv8_2.permute(0, 2, 3, 1).contiguous()  # (N, 10, 10, 24)
@@ -164,117 +228,188 @@ class PredictionConvolutions(nn.Module):
 
         # Predict classes in localization boxes
         c_conv4_3 = self.cl_conv4_3(conv4_3_feats)  # (N, 4 * n_classes, 38, 38)
-        c_conv4_3 = c_conv4_3.permute(0, 2, 3,
-                                      1).contiguous()  # (N, 38, 38, 4 * n_classes), to match prior-box order (after .view())
-        c_conv4_3 = c_conv4_3.view(batch_size, -1,
-                                   self.n_classes)  # (N, 5776, n_classes), there are a total 5776 boxes on this feature map
+        c_conv4_3 = c_conv4_3.permute(
+            0, 2, 3, 1
+        ).contiguous()  # (N, 38, 38, 4 * n_classes), to match prior-box order (after .view())
+        c_conv4_3 = c_conv4_3.view(
+            batch_size, -1, self.n_classes
+        )  # (N, 5776, n_classes), there are a total 5776 boxes on this feature map
 
         c_conv7 = self.cl_conv7(conv7_feats)  # (N, 6 * n_classes, 19, 19)
         c_conv7 = c_conv7.permute(0, 2, 3, 1).contiguous()  # (N, 19, 19, 6 * n_classes)
-        c_conv7 = c_conv7.view(batch_size, -1,
-                               self.n_classes)  # (N, 2166, n_classes), there are a total 2116 boxes on this feature map
+        c_conv7 = c_conv7.view(
+            batch_size, -1, self.n_classes
+        )  # (N, 2166, n_classes), there are a total 2116 boxes on this feature map
 
         c_conv8_2 = self.cl_conv8_2(conv8_2_feats)  # (N, 6 * n_classes, 10, 10)
-        c_conv8_2 = c_conv8_2.permute(0, 2, 3, 1).contiguous()  # (N, 10, 10, 6 * n_classes)
-        c_conv8_2 = c_conv8_2.view(batch_size, -1, self.n_classes)  # (N, 600, n_classes)
+        c_conv8_2 = c_conv8_2.permute(
+            0, 2, 3, 1
+        ).contiguous()  # (N, 10, 10, 6 * n_classes)
+        c_conv8_2 = c_conv8_2.view(
+            batch_size, -1, self.n_classes
+        )  # (N, 600, n_classes)
 
         c_conv9_2 = self.cl_conv9_2(conv9_2_feats)  # (N, 6 * n_classes, 5, 5)
-        c_conv9_2 = c_conv9_2.permute(0, 2, 3, 1).contiguous()  # (N, 5, 5, 6 * n_classes)
-        c_conv9_2 = c_conv9_2.view(batch_size, -1, self.n_classes)  # (N, 150, n_classes)
+        c_conv9_2 = c_conv9_2.permute(
+            0, 2, 3, 1
+        ).contiguous()  # (N, 5, 5, 6 * n_classes)
+        c_conv9_2 = c_conv9_2.view(
+            batch_size, -1, self.n_classes
+        )  # (N, 150, n_classes)
 
         c_conv10_2 = self.cl_conv10_2(conv10_2_feats)  # (N, 4 * n_classes, 3, 3)
-        c_conv10_2 = c_conv10_2.permute(0, 2, 3, 1).contiguous()  # (N, 3, 3, 4 * n_classes)
-        c_conv10_2 = c_conv10_2.view(batch_size, -1, self.n_classes)  # (N, 36, n_classes)
+        c_conv10_2 = c_conv10_2.permute(
+            0, 2, 3, 1
+        ).contiguous()  # (N, 3, 3, 4 * n_classes)
+        c_conv10_2 = c_conv10_2.view(
+            batch_size, -1, self.n_classes
+        )  # (N, 36, n_classes)
 
         c_conv11_2 = self.cl_conv11_2(conv11_2_feats)  # (N, 4 * n_classes, 1, 1)
-        c_conv11_2 = c_conv11_2.permute(0, 2, 3, 1).contiguous()  # (N, 1, 1, 4 * n_classes)
-        c_conv11_2 = c_conv11_2.view(batch_size, -1, self.n_classes)  # (N, 4, n_classes)
+        c_conv11_2 = c_conv11_2.permute(
+            0, 2, 3, 1
+        ).contiguous()  # (N, 1, 1, 4 * n_classes)
+        c_conv11_2 = c_conv11_2.view(
+            batch_size, -1, self.n_classes
+        )  # (N, 4, n_classes)
 
         # A total of 8732 boxes
         # Concatenate in this specific order (i.e. must match the order of the prior-boxes)
-        locs = torch.cat([l_conv4_3, l_conv7, l_conv8_2, l_conv9_2, l_conv10_2, l_conv11_2], dim=1)  # (N, 8732, 4)
-        classes_scores = torch.cat([c_conv4_3, c_conv7, c_conv8_2, c_conv9_2, c_conv10_2, c_conv11_2],
-                                   dim=1)  # (N, 8732, n_classes)
+        locs = torch.cat(
+            [l_conv4_3, l_conv7, l_conv8_2, l_conv9_2, l_conv10_2, l_conv11_2], dim=1
+        )  # (N, 8732, 4)
+        classes_scores = torch.cat(
+            [c_conv4_3, c_conv7, c_conv8_2, c_conv9_2, c_conv10_2, c_conv11_2], dim=1
+        )  # (N, 8732, n_classes)
 
         return locs, classes_scores
 
 
+# auxiliary_conv = [256, 'S', 512, 128, 'S', 256, 128, 256, 128, 256]
 
- 
-#auxiliary_conv = [256, 'S', 512, 128, 'S', 256, 128, 256, 128, 256]
 
 class AuxillaryConvolutions(nn.Module):
-    
     def __init__(self, backbone_net):
         super(AuxillaryConvolutions, self).__init__()
-        
+
         if backbone_net == "MobileNetV2":
-          self.extras = ModuleList([
-          Sequential(
-              Conv2d(in_channels=1280, out_channels=256, kernel_size=1),
-              ReLU(),
-              Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=2, padding=1),
-              ReLU()
-          ),
-          Sequential(
-              Conv2d(in_channels=512, out_channels=128, kernel_size=1),
-              ReLU(),
-              Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1),
-              ReLU()
-          ),
-          Sequential(
-              Conv2d(in_channels=256, out_channels=128, kernel_size=1),
-              ReLU(),
-              Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1),
-              ReLU()
-          ),
-          Sequential(
-              Conv2d(in_channels=256, out_channels=128, kernel_size=1),
-              ReLU(),
-              Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1),
-              ReLU()
-          )
-          ])
+            self.extras = ModuleList(
+                [
+                    Sequential(
+                        Conv2d(in_channels=1280, out_channels=256, kernel_size=1),
+                        ReLU(),
+                        Conv2d(
+                            in_channels=256,
+                            out_channels=512,
+                            kernel_size=3,
+                            stride=2,
+                            padding=1,
+                        ),
+                        ReLU(),
+                    ),
+                    Sequential(
+                        Conv2d(in_channels=512, out_channels=128, kernel_size=1),
+                        ReLU(),
+                        Conv2d(
+                            in_channels=128,
+                            out_channels=256,
+                            kernel_size=3,
+                            stride=2,
+                            padding=1,
+                        ),
+                        ReLU(),
+                    ),
+                    Sequential(
+                        Conv2d(in_channels=256, out_channels=128, kernel_size=1),
+                        ReLU(),
+                        Conv2d(
+                            in_channels=128,
+                            out_channels=256,
+                            kernel_size=3,
+                            stride=2,
+                            padding=1,
+                        ),
+                        ReLU(),
+                    ),
+                    Sequential(
+                        Conv2d(in_channels=256, out_channels=128, kernel_size=1),
+                        ReLU(),
+                        Conv2d(
+                            in_channels=128,
+                            out_channels=256,
+                            kernel_size=3,
+                            stride=2,
+                            padding=1,
+                        ),
+                        ReLU(),
+                    ),
+                ]
+            )
 
-          self.init_conv2d()
-                 
-        elif backbone_net=="MobileNetV1":
-          self.extras = ModuleList([
-          Sequential(
-              Conv2d(in_channels=1024, out_channels=256, kernel_size=1),
-              ReLU(),
-              Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=2, padding=1),
-              ReLU()
-          ),
-          Sequential(
-              Conv2d(in_channels=512, out_channels=128, kernel_size=1),
-              ReLU(),
-              Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1),
-              ReLU()
-          ),
-          Sequential(
-              Conv2d(in_channels=256, out_channels=128, kernel_size=1),
-              ReLU(),
-              Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1),
-              ReLU()
-          ),
-          Sequential(
-              Conv2d(in_channels=256, out_channels=128, kernel_size=1),
-              ReLU(),
-              Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1),
-              ReLU()
-          )
-          ])
+            self.init_conv2d()
 
-          self.init_conv2d()
-          
-        
+        elif backbone_net == "MobileNetV1":
+            self.extras = ModuleList(
+                [
+                    Sequential(
+                        Conv2d(in_channels=1024, out_channels=256, kernel_size=1),
+                        ReLU(),
+                        Conv2d(
+                            in_channels=256,
+                            out_channels=512,
+                            kernel_size=3,
+                            stride=2,
+                            padding=1,
+                        ),
+                        ReLU(),
+                    ),
+                    Sequential(
+                        Conv2d(in_channels=512, out_channels=128, kernel_size=1),
+                        ReLU(),
+                        Conv2d(
+                            in_channels=128,
+                            out_channels=256,
+                            kernel_size=3,
+                            stride=2,
+                            padding=1,
+                        ),
+                        ReLU(),
+                    ),
+                    Sequential(
+                        Conv2d(in_channels=256, out_channels=128, kernel_size=1),
+                        ReLU(),
+                        Conv2d(
+                            in_channels=128,
+                            out_channels=256,
+                            kernel_size=3,
+                            stride=2,
+                            padding=1,
+                        ),
+                        ReLU(),
+                    ),
+                    Sequential(
+                        Conv2d(in_channels=256, out_channels=128, kernel_size=1),
+                        ReLU(),
+                        Conv2d(
+                            in_channels=128,
+                            out_channels=256,
+                            kernel_size=3,
+                            stride=2,
+                            padding=1,
+                        ),
+                        ReLU(),
+                    ),
+                ]
+            )
+
+            self.init_conv2d()
+
     def init_conv2d(self):
         for c in self.children():
             for layer in c:
                 if isinstance(layer, nn.Conv2d):
                     nn.init.xavier_uniform_(layer.weight)
-                    nn.init.constant_(c.bias, 0.)
+                    nn.init.constant_(c.bias, 0.0)
 
     def forward(self, inp_features_10x10):
         features = []
@@ -282,69 +417,71 @@ class AuxillaryConvolutions(nn.Module):
         for layer in self.extras:
             x = layer(x)
             features.append(x)
-        
+
         features_5x5 = features[0]
         features_3x3 = features[1]
         features_2x2 = features[2]
         features_1x1 = features[3]
         return features_5x5, features_3x3, features_2x2, features_1x1
-        
-        
+
+
 class SSD(nn.Module):
     def __init__(self, num_classes, backbone_network):
         super(SSD, self).__init__()
-        
+
         self.num_classes = num_classes
         self.priors = torch.FloatTensor(priors).to(device)
-        
-        #self.base_net = MobileNetV1().model
+
+        # self.base_net = MobileNetV1().model
         self.backbone_net = backbone_network
-        if self.backbone_net == 'MobileNetV1':
-        	self.base_net = MobileNetV1().model
-        elif self.backbone_net == 'MobileNetV2':
-        	self.base_net = MobileNetV2_pretrained('mobilenet_v2.pth.tar').model
+        if self.backbone_net == "MobileNetV1":
+            self.base_net = MobileNetV1().model
+        elif self.backbone_net == "MobileNetV2":
+            self.base_net = MobileNetV2_pretrained("mobilenet_v2.pth.tar").model
         else:
-        	raise('SSD cannot be created with the provided base network')
-        #self.base_net = MobileNetV2()
-        
+            raise ("SSD cannot be created with the provided base network")
+        # self.base_net = MobileNetV2()
+
         self.aux_network = AuxillaryConvolutions(self.backbone_net)
-        self.prediction_network  = PredictionConvolutions(num_classes, self.backbone_net)
-        
+        self.prediction_network = PredictionConvolutions(num_classes, self.backbone_net)
+
     def forward(self, image):
-        
-        
-        x= image
-        if self.backbone_net == 'MobileNetV1':
-        	source_layer_indexes = [
-		    						12,
-		    						14,]
-        	start_layer_index = 0
-        	flag = 0
-        	x = x.to('cuda')
-        	for end_layer_index in source_layer_indexes:
-        		for layer in self.base_net[start_layer_index: end_layer_index]:
-        			x = layer(x)
-        		layer_output = x
-        		start_layer_index = end_layer_index
-        		if flag ==0:
-        			features_19x19 = layer_output
-        		elif flag ==1:
-        			features_10x10 = layer_output
-        		flag+=1
-        	for layer in self.base_net[end_layer_index:]:
-        		x = layer(x)
-        
-        elif self.backbone_net == 'MobileNetV2':
-        	for index, feat in enumerate(self.base_net.features):
-        		x = feat(x)
-        		if index==13:
-        			features_19x19 = x
-        		if index==18:
-        			features_10x10 = x
-		        
+
+        x = image
+        if self.backbone_net == "MobileNetV1":
+            source_layer_indexes = [
+                12,
+                14,
+            ]
+            start_layer_index = 0
+            flag = 0
+            x = x.to("cuda")
+            for end_layer_index in source_layer_indexes:
+                for layer in self.base_net[start_layer_index:end_layer_index]:
+                    x = layer(x)
+                layer_output = x
+                start_layer_index = end_layer_index
+                if flag == 0:
+                    features_19x19 = layer_output
+                elif flag == 1:
+                    features_10x10 = layer_output
+                flag += 1
+            for layer in self.base_net[end_layer_index:]:
+                x = layer(x)
+
+        elif self.backbone_net == "MobileNetV2":
+            for index, feat in enumerate(self.base_net.features):
+                x = feat(x)
+                if index == 13:
+                    features_19x19 = x
+                if index == 18:
+                    features_10x10 = x
+
         layer_output = x
-        features_5x5, features_3x3, features_2x2, features_1x1 = self.aux_network(layer_output)
-        
+        features_5x5, features_3x3, features_2x2, features_1x1 = self.aux_network(
+            layer_output
+        )
+
         features = []
         features.append(features_19x19)
         features.append(features_10x10)
@@ -352,11 +489,20 @@ class SSD(nn.Module):
         features.append(features_3x3)
         features.append(features_2x2)
         features.append(features_1x1)
-        
-        locs, class_scores = self.prediction_network.forward(features_19x19, features_10x10, features_5x5, features_3x3, features_2x2, features_1x1)
-        
+
+        locs, class_scores = self.prediction_network.forward(
+            features_19x19,
+            features_10x10,
+            features_5x5,
+            features_3x3,
+            features_2x2,
+            features_1x1,
+        )
+
         return locs, class_scores
-''' 
+
+
+""" 
 import numpy as np
 import torch
 img = np.random.rand(1, 3, 300, 300)
@@ -365,5 +511,4 @@ img = torch.Tensor(img)
 model = SSD(20)
 loc, classes = model.forward(img)
 print (loc.shape, classes.shape)
-'''
-
+"""
